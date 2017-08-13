@@ -1,0 +1,244 @@
+= Spring Boot Apps on K8s
+
+== 30 min talk outline:
+
+Spring Boot Apps on K8s:
+
+* k8s overview
+	- pod/containers, nodes, master, API, scheduler
+	- kubectl - common commands
+	- minikube - quick install
+	
+=== Hello World App
+* run with kubectl commands
+* show running yaml/json
+
+- Demo 1
+* https://kubernetes.io/docs/tasks/tools/install-minikube/[install minikube]
+
+	cd ~/Downloads/
+	mv minikube-darwin-amd64 minikube
+	chmod +x minikube
+	mv minikube /usr/local/bin/minikube
+	minikube start --cpus=4 --memory=4096
+
+* https://kubernetes.io/docs/tasks/tools/install-kubectl/[install kubectl]
+
+	kubectl version
+
+* simple Boot app
+	
+	curl https://start.spring.io/starter.zip -d dependencies=web,actuator \ 
+	     -d groupId=com.springdeveloper.k8s -d artifactId=hello \
+	     -d name=hello -d baseDir=hello -o hello.zip
+	unzip hello.zip
+
+* `HelloApplication.java`
+
+	@SpringBootApplication
+	public class HelloApplication {
+		public static void main(String[] args) {
+			SpringApplication.run(HelloApplication.class, args);
+		}
+
+* Add:
+
+		@RestController
+		class HelloController {
+			@GetMapping("/hello")
+			String hello() {
+				return "Hello Kubernauts!";
+			}
+		}
+	}
+
+* `application.properties`
+
+	endpoints.env.sensitive=false
+
+* `Dockerfile`
+	
+	FROM java:8
+	VOLUME /tmp
+	ADD ./target/hello-*.jar /hello.jar
+	RUN bash -c 'touch /hello.jar'
+	ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/hello.jar"]
+	
+
+* Build Docker image
+	
+	docker build -t trisberg/hello .
+	
+* Test Docker container locally
+	
+	docker run -p 8080:8080 trisberg/hello
+
+* Push Docker container to a registry
+
+	docker push trisberg/hello
+
+* Run a deployment
+
+	kubectl run hello --image trisberg/hello --port=8080
+	kubectl expose deployment hello --type=NodePort
+	minikube service hello --url
+
+* Test the app
+	
+	curl $(minikube service hello --url)/hello
+
+=== Small Microservice - Actor REST Repository App
+
+* Small CRUD JPA Repository
+
+	curl https://start.spring.io/starter.zip -d dependencies=web,actuator,jpa,data-rest,mysql,hsql \
+	     -d groupId=com.springdeveloper.k8s -d artifactId=actors \
+	     -d name=actors -d baseDir=actors -o actors.zip
+	unzip actors.zip
+
+* Add an Actor Entity
+
+.Actor
+[source,java]
+----
+package com.springdeveloper.k8s.actors;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+
+@Entity
+public class Actor {
+
+	@Id
+	@GeneratedValue
+	Long id;
+
+	String name;
+
+	int age;
+
+	public Long getId() {
+		return id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public int getAge() {
+		return age;
+	}
+
+	public void setAge(int age) {
+		this.age = age;
+	}
+}
+----
+
+* Add an ActorRepository
+
+.ActorRepository
+[source,java]
+----
+package com.springdeveloper.k8s.actors;
+
+import java.util.List;
+
+import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.repository.query.Param;
+
+public interface ActorRepository extends PagingAndSortingRepository<Actor, Long> {
+
+	List<Actor> findByName(@Param("name") String name);
+
+}
+----
+
+.application.properties
+[source,props]
+----
+spring.datasource.url=jdbc:mysql://127.0.0.1:3306/test
+spring.datasource.driverClassName=com.mysql.jdbc.Driver
+spring.datasource.username=spring
+spring.datasource.password=spring
+spring.jpa.hibernate.ddl-auto=create
+endpoints.env.sensitive=false
+----
+
+* Add some actor records:
+
+	curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Jack Nicholson\",  \"age\" : 80 }" http://localhost:8080/actors
+	curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Al Pacino\",  \"age\" : 77 }" http://localhost:8080/actors
+	curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Meryl Streep\",  \"age\" : 68 }" http://localhost:8080/actors
+	curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Jennifer Lawrence\",  \"age\" : 26 }" http://localhost:8080/actors
+	curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Julia Roberts\",  \"age\" : 49 }" http://localhost:8080/actors
+	curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Bradley Cooper\",  \"age\" : 42 }" http://localhost:8080/actors
+	
+* Add Docker plug-in
+
+.src/main/docker/assembly.xml
+[source,xml]
+----
+<assembly
+        xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2
+            http://maven.apache.org/xsd/assembly-1.1.2.xsd">
+    <id>actors</id>
+    <dependencySets>
+        <dependencySet>
+            <includes>
+                <include>com.springdeveloper.k8s:actors</include>
+            </includes>
+            <outputDirectory>.</outputDirectory>
+            <outputFileNameMapping>actors.jar</outputFileNameMapping>
+        </dependencySet>
+    </dependencySets>
+</assembly>
+----
+
+.pom.xml
+[source,xml]
+----
+...
+			<plugin>
+				<groupId>io.fabric8</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>0.14.2</version>
+				<configuration>
+					<images>
+						<image>
+							<name>actors</name>
+							<build>
+								<from>java:8-alpine</from>
+								<volumes>
+									<volume>/tmp</volume>
+								</volumes>
+								<entryPoint>
+									<exec>
+										<arg>java</arg>
+										<arg>-jar</arg>
+										<arg>/maven/actors.jar</arg>
+									</exec>
+								</entryPoint>
+								<assembly>
+									<descriptor>assembly.xml</descriptor>
+								</assembly>
+							</build>
+						</image>
+					</images>
+				</configuration>
+			</plugin>
+...
+----
+
+Create a MySQL deployment and service
+
+----
+kubectl apply -f ./mysql/
+----
