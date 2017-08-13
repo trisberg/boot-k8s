@@ -394,3 +394,38 @@ data:
 kubectl apply -f ./mysql/
 ----
 
+* Build app and push Docker image
+
+----
+./mvnw clean package docker:build
+docker tag actors $USER/actors:0.0.1
+docker push $USER/actors:0.0.1
+----
+
+* Deploy app to k8s
+
+----
+kubectl apply -f config/
+----
+
+* Get status
+
+----
+$ kubectl get all
+NAME                         READY     STATUS    RESTARTS   AGE
+po/actors-2063423708-g81sz   1/1       Running   0          2h
+po/mysql-777890292-ht5v2     1/1       Running   0          13h
+
+NAME             CLUSTER-IP   EXTERNAL-IP   PORT(S)        AGE
+svc/actors       10.0.0.185   <nodes>       80:31012/TCP   2h
+svc/kubernetes   10.0.0.1     <none>        443/TCP        13h
+svc/mysql        10.0.0.83    <none>        3306/TCP       13h
+
+NAME            DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+deploy/actors   1         1         1            1           2h
+deploy/mysql    1         1         1            1           13h
+
+NAME                   DESIRED   CURRENT   READY     AGE
+rs/actors-2063423708   1         1         1         2h
+rs/mysql-777890292     1         1         1         13h
+----
