@@ -251,16 +251,16 @@ endpoints.env.sensitive=false
 ...
 ----
 
-* Add Fabric8 Spring Boot/Kubernetes plug-in
+* Add Spring Cloud Kubernetes plug-in (originally Fabric8, now spring-cloud-incubator project)
 
 .pom.xml
 [source,xml]
 ----
 ...
 		<dependency>
-			<groupId>io.fabric8</groupId>
+			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-kubernetes</artifactId>
-			<version>0.1.6</version>
+			<version>0.2.0.RELEASE</version>
 		</dependency>
 ...
 ----
@@ -270,6 +270,10 @@ endpoints.env.sensitive=false
 ----
 ...
         env:
+        - name: SERVER_PORT
+          value: '80'
+        - name: SPRING_PROFILES_ACTIVE
+          value: kubernetes
         - name: SPRING_CLOUD_KUBERNETES_SECRETS_ENABLE_API
           value: 'true'
         - name: SPRING_CLOUD_KUBERNETES_SECRETS_NAME
@@ -429,3 +433,9 @@ NAME                   DESIRED   CURRENT   READY     AGE
 rs/actors-2063423708   1         1         1         2h
 rs/mysql-777890292     1         1         1         13h
 ----
+
+* Add some actor records (empty table in database initially):
+
+	./data/add-actors.sh 
+
+

@@ -5,7 +5,7 @@
 
 	<groupId>com.springdeveloper.k8s</groupId>
 	<artifactId>actors</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>actors</name>
@@ -42,9 +42,9 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>io.fabric8</groupId>
+			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-kubernetes</artifactId>
-			<version>0.1.6</version>
+			<version>0.2.0.RELEASE</version>
 		</dependency>
 
 		<dependency>

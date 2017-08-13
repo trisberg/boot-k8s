@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: actors
-        image: trisberg/actors:0.0.1
+        image: trisberg/actors:0.0.2
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
@@ -41,11 +41,13 @@ spec:
         env:
         - name: SERVER_PORT
           value: '80'
-        - name: SPRING_CLOUD_CONFIG_ENABLED
-          value: 'false'
+        - name: SPRING_PROFILES_ACTIVE
+          value: kubernetes
         - name: SPRING_CLOUD_KUBERNETES_SECRETS_ENABLE_API
           value: 'true'
         - name: SPRING_CLOUD_KUBERNETES_SECRETS_NAME
           value: mysql
         - name: SPRING_CLOUD_KUBERNETES_CONFIG_NAME
           value: actors
+        - name: SPRING_CLOUD_CONFIG_ENABLED
+          value: 'false'
