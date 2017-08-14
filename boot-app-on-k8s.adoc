@@ -18,7 +18,7 @@ v0.0.1, 2017-08-13
 
 	kubectl version
 
-== Spring Boot Apps on K8s:
+== kubectl, Deployments, Services
 
 * k8s overview
 	- pod/containers, nodes, master, API, scheduler
@@ -94,7 +94,7 @@ v0.0.1, 2017-08-13
 	
 	curl $(minikube service hello --url)/hello
 
-== Spring Boot Apps using services
+== ConfigMap, Secrets
 
 === Small Microservice - Actor REST Repository App
 
@@ -438,4 +438,14 @@ rs/mysql-777890292     1         1         1         13h
 
 	./data/add-actors.sh 
 
+== Service Discovery - Eureka
 
+== Service Mesh - Istio
+
+== Packaging - Helm
+
+== New Developments
+
+=== Open Service API / Kubernetes Service Catalog
+
+=== KuBo
