@@ -1,0 +1,12 @@
+apiVersion: v1
+description: A Helm chart for Kubernetes
+name: actors
+version: 0.1.0
+appVersion: 0.0.2
+home: https://github.com/trisberg/boot-k8s
+sources:
+- https://github.com/trisberg/boot-k8s
+icon: https://raw.githubusercontent.com/trisberg/boot-k8s/master/spring-boot-project-logo.png
+maintainers:
+- name: Thomas Risberg
+  email: trisberg@pivotal.io

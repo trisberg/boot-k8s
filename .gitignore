@@ -1,3 +1,5 @@
+.DS_Store
+
 target/
 pom.xml.tag
 pom.xml.releaseBackup
@@ -35,3 +37,6 @@ nbdist/
 
 ### Visual Studio Code ###
 .vscode
+
+# Chart artifacts
+*.tgz
