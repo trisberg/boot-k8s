@@ -447,7 +447,159 @@ rs/mysql-777890292     1         1         1         13h
 
 	./data/add-actors.sh
 
+== Google Cloud Platform services
+
+=== Connecting to Cloud SQL for MySQL
+
+* Enable the Cloud SQL API
+
+* Create a MySQL Database (2nd Generation)
+
+* Create a Service Account
+
+* Use a Side Car Proxy
+
+==== Demo 3 - Simple REST Repository App using Cloud SQL for MySQL
+
+* Create a service account
+
+	Role: Cloud SQL Client
+	
+Download the JSON private key file
+
+* Create the user account for the proxy
+
+	gcloud sql users create proxyuser cloudsqlproxy~% --instance=spring-mysql
+	gcloud sql users set-password proxyuser cloudsqlproxy~% \ 
+	    --instance=spring-mysql --password=<your-password>
+
+* Get your instance connection name
+
+	gcloud sql instances describe spring-mysql
+	...
+	connectionName: <project>:us-central1:spring-mysql
+	...
+
+* Create your secrets
+	kubectl create secret generic cloudsql-instance-credentials --from-file=credentials.json=<private-key-file-path>
+	kubectl create secret generic cloudsql-db-credentials --from-literal=username=proxyuser --from-literal=password=<your-password>
+
+* Update your ConfigMap/Deployment configuration files
+
+.config/actors-deployment.yaml
+[source,yaml]
+----
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: actors
+  labels:
+    app: actors
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: actors
+    spec:
+      containers:
+      - image: gcr.io/cloudsql-docker/gce-proxy:1.09
+        name: cloudsql-proxy
+        command: ["/cloud_sql_proxy", "--dir=/cloudsql",
+                  "-instances=<project>:us-central1:spring-mysql=tcp:3306",
+                  "-credential_file=/secrets/cloudsql/credentials.json"]
+        volumeMounts:
+          - name: cloudsql-instance-credentials
+            mountPath: /secrets/cloudsql
+            readOnly: true
+          - name: ssl-certs
+            mountPath: /etc/ssl/certs
+          - name: cloudsql
+            mountPath: /cloudsql
+      - name: actors
+        image: trisberg/actors:0.0.2
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 1.0
+            memory: 1024Mi
+          requests:
+            cpu: 0.5
+            memory: 640Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 90
+          periodSeconds: 15
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 45
+          periodSeconds: 15
+          timeoutSeconds: 5
+        env:
+        - name: SERVER_PORT
+          value: '80'
+        - name: SPRING_PROFILES_ACTIVE
+          value: kubernetes
+        - name: SPRING_CLOUD_KUBERNETES_CONFIG_NAME
+          value: actors
+        - name: SPRING_CLOUD_CONFIG_ENABLED
+          value: 'false'
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: cloudsql-db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cloudsql-db-credentials
+              key: password
+      volumes:
+        - name: cloudsql-instance-credentials
+          secret:
+            secretName: cloudsql-instance-credentials
+        - name: ssl-certs
+          hostPath:
+            path: /etc/ssl/certs
+        - name: cloudsql
+          emptyDir:
+----
+
+.config/actors-config.yaml
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: actors
+  labels:
+    app: actors
+data:
+  application.yaml: |-
+    security:
+      basic:
+        enabled: false
+    spring:
+      datasource:
+        url: jdbc:mysql://127.0.0.1:3306/test
+        username: ${DB_USER}
+        password: ${DB_PASSWORD}
+        driverClassName: com.mysql.jdbc.Driver
+        testOnBorrow: true
+        validationQuery: "SELECT 1"
+----
+
+
 == Service Discovery - Eureka
+
+== Circuit-breaker - Hystrix
 
 == Service Mesh - Istio
 
@@ -665,4 +817,4 @@ helm delete test --purge
 
 === Open Service API / Kubernetes Service Catalog
 
-=== KuBo
+=== KuBo / PKS
