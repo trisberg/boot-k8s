@@ -40,7 +40,7 @@ Use `kubectl` to check the versions:
 . Create a simple Boot app
 +
 ----
-curl https://start.spring.io/starter.zip bootVersion=1.5.6.RELEASE \
+curl https://start.spring.io/starter.zip -d bootVersion=1.5.6.RELEASE \
      -d dependencies=web,actuator \
      -d groupId=com.springdeveloper.k8s -d artifactId=hello \
      -d name=hello -d baseDir=hello -o hello.zip
@@ -159,10 +159,12 @@ kubectl delete all -l run=hello
 . Create a small CRUD JPA Repository app
 +
 ----
-curl https://start.spring.io/starter.zip -d dependencies=web,actuator,jpa,data-rest,mysql,hsql \
-     -d groupId=com.springdeveloper.k8s -d artifactId=actors \
-     -d name=actors -d baseDir=actors -o actors.zip
+curl https://start.spring.io/starter.zip -d bootVersion=1.5.6.RELEASE \
+    -d dependencies=web,actuator,jpa,data-rest,mysql,hsql \
+    -d groupId=com.springdeveloper.k8s -d artifactId=actors \
+    -d name=actors -d baseDir=actors -o actors.zip
 unzip actors.zip
+cd actors
 ----
 
 . Add an Actor Entity
@@ -294,7 +296,7 @@ spring.datasource.initialize=false
 			<plugin>
 				<groupId>io.fabric8</groupId>
 				<artifactId>docker-maven-plugin</artifactId>
-				<version>0.14.2</version>
+				<version>0.21.0</version>
 				<configuration>
 					<images>
 						<image>
