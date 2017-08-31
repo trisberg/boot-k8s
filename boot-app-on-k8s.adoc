@@ -33,7 +33,7 @@ Use `kubectl` to check the versions:
 * build and push Docker image
 * run app with kubectl commands
 * show enviroinment variables
-* show running yaml/json
+* show running yaml config files
 
 === Demo 1 - Simple Hello Spring Boot/Kubernetes app
 
@@ -130,12 +130,12 @@ minikube service hello --url
 curl $(minikube service hello --url)/hello
 ----
 
-. Inspect environment variables and Kubernetes deployment/service json
+. Inspect environment variables and Kubernetes deployment/service yaml
 +
 ----
 curl $(minikube service hello --url)/env | python -m json.tool
-kubectl get deploy/hello -o json
-kubectl get svc/hello -o json
+kubectl get deploy/hello -o yaml
+kubectl get svc/hello -o yaml
 ----
 
 . Delete the resources created for `hello`
