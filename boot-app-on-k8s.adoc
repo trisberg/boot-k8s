@@ -1,98 +1,150 @@
 = Spring Boot Apps on K8s
 Doc Writer <doc.writer@asciidoctor.org>
 v0, 2017-08-13
+:doctype: book
 :toc:
 :toclevels: 3
+:attributes: allow-uri-read
 
 == Install Kubernetes and kubectl CLI
 
-* https://kubernetes.io/docs/tasks/tools/install-minikube/[install minikube]
-
-	minikube start --cpus=4 --memory=4096
-
-* https://kubernetes.io/docs/tasks/tools/install-kubectl/[install kubectl]
-
+. Install Minikube from https://kubernetes.io/docs/tasks/tools/install-minikube/
++
+Then, start Minikube:
++
+	minikube start
++
+. Install `kubectl` from https://kubernetes.io/docs/tasks/tools/install-kubectl/
++
+Use `kubectl` to check the versions:
++
 	kubectl version
 
-== kubectl, Deployments, Services
+== Introducing kubectl, Deployments, Services
 
-* k8s overview
-	- pod/containers, nodes, master, API, scheduler
-	- kubectl - common commands
-	- minikube - quick install
+=== Kubernetes overview
+* pod/containers, nodes, master, API, scheduler
+* kubectl - common commands
+* minikube - quick install
 
-=== Hello World App
-
-* run with kubectl commands
-
+=== Boot app basics
+* create a new app project
+* modify and build app
+* build and push Docker image
+* run app with kubectl commands
+* show enviroinment variables
 * show running yaml/json
 
-==== Demo 1 - Simple Hello Kubernetes app
+=== Demo 1 - Simple Hello Spring Boot/Kubernetes app
 
-* simple Boot app
+. Create a simple Boot app
++
+----
+curl https://start.spring.io/starter.zip bootVersion=1.5.6.RELEASE \
+     -d dependencies=web,actuator \
+     -d groupId=com.springdeveloper.k8s -d artifactId=hello \
+     -d name=hello -d baseDir=hello -o hello.zip
+unzip hello.zip
+cd hello
+----
 
-	curl https://start.spring.io/starter.zip -d dependencies=web,actuator \
-	     -d groupId=com.springdeveloper.k8s -d artifactId=hello \
-	     -d name=hello -d baseDir=hello -o hello.zip
-	unzip hello.zip
+. Add a `@RestController` and a mapping for `/hello`:
++
+.HelloApplication.java
+[subs=+quotes]
+----
+package com.springdeveloper.k8s.hello;
 
-* `HelloApplication.java`
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+*import org.springframework.web.bind.annotation.GetMapping;*
+*import org.springframework.web.bind.annotation.RestController;*
 
-	@SpringBootApplication
-	public class HelloApplication {
-		public static void main(String[] args) {
-			SpringApplication.run(HelloApplication.class, args);
-		}
-
-* Add:
-
-		@RestController
-		class HelloController {
-			@GetMapping("/hello")
-			String hello() {
-				return "Hello Kubernauts!";
-			}
-		}
+@SpringBootApplication
+public class HelloApplication {
+	public static void main(String[] args) {
+		SpringApplication.run(HelloApplication.class, args);
 	}
 
-* `application.properties`
+	*@RestController*
+	*class HelloController {*
+		*@GetMapping("/hello")*
+		*String hello() {*
+			*return "Hello Kubernauts!";*
+		*}*
+	*}*
+}
+----
 
-	endpoints.env.sensitive=false
+. Add a property disabling security for the `env` endpoint so we can inspect environment variables added by Kubernetes 
++
+.application.properties
+----
+endpoints.env.sensitive=false
+----
 
-* `Dockerfile`
+. Create a `Dockerfile` so we can package this app as a Docker image
++
+.Dockerfile
+----
+FROM java:8
+VOLUME /tmp
+ADD ./target/hello-*.jar /hello.jar
+RUN bash -c 'touch /hello.jar'
+ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/hello.jar"]
+----
 
-	FROM java:8
-	VOLUME /tmp
-	ADD ./target/hello-*.jar /hello.jar
-	RUN bash -c 'touch /hello.jar'
-	ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/hello.jar"]
+. Build the app and the Docker image 
++
+(we are assuming that you have a DockerHub account matching your username here, if that is not the case adjust accordingly)
++
+----
+./mvnw clean package
+docker build -t $USER/hello .
+----
 
+. Test Docker container locally
++
+----
+docker run -p 8080:8080 $USER/hello
+curl http://localhost:8080/hello
+----
 
-* Build Docker image
+. Push Docker container to a new registry for your DockerHub account
++
+----
+docker push $USER/hello
+----
 
-	docker build -t trisberg/hello .
+. Run a Kubernetes deployment on the running Minikube cluster
++
+----
+kubectl run hello --image trisberg/hello --port=8080
+kubectl expose deployment hello --type=NodePort
+minikube service hello --url
+----
 
-* Test Docker container locally
+. Test the app
++
+----
+curl $(minikube service hello --url)/hello
+----
 
-	docker run -p 8080:8080 trisberg/hello
+. Inspect environment variables and Kubernetes deployment/service json
++
+----
+curl $(minikube service hello --url)/env | python -m json.tool
+kubectl get deploy/hello -o json
+kubectl get svc/hello -o json
+----
 
-* Push Docker container to a registry
+. Delete the resources created for `hello`
++
+----
+kubectl delete all -l run=hello
+----
 
-	docker push trisberg/hello
-
-* Run a deployment
-
-	kubectl run hello --image trisberg/hello --port=8080
-	kubectl expose deployment hello --type=NodePort
-	minikube service hello --url
-
-* Test the app
-
-	curl $(minikube service hello --url)/hello
-
-== ConfigMap, Secrets
-
-=== Small Microservice - Actor REST Repository App
+== Using ConfigMap, Secrets
 
 * Connecting to services running on k8s
 
@@ -102,7 +154,7 @@ v0, 2017-08-13
 
 * Use `org.springframework.cloud:spring-cloud-starter-kubernetes` for ConfigMaps and Secrets
 
-==== Demo 2 - Simple REST Repository App
+=== Demo 2 - Simple REST Repository App
 
 * Small CRUD JPA Repository
 
@@ -447,9 +499,7 @@ rs/mysql-777890292     1         1         1         13h
 
 	./data/add-actors.sh
 
-== Google Cloud Platform services
-
-=== Connecting to Cloud SQL for MySQL
+== Connecting to Google Cloud Platform services
 
 * Enable the Cloud SQL API
 
@@ -459,7 +509,7 @@ rs/mysql-777890292     1         1         1         13h
 
 * Use a Side Car Proxy
 
-==== Demo 3 - Simple REST Repository App using Cloud SQL for MySQL
+=== Demo 3 - Simple REST Repository App using Cloud SQL for MySQL
 
 * Create a service account
 
