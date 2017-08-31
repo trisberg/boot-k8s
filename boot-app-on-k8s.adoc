@@ -817,4 +817,4 @@ helm delete test --purge
 
 === Open Service API / Kubernetes Service Catalog
 
-=== KuBo / PKS
+=== PKS / Kubo
