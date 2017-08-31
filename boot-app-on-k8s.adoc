@@ -242,19 +242,26 @@ spring.jpa.hibernate.ddl-auto=create
 spring.datasource.initialize=true
 ----
 
-. You can add actor records (some are already added in database init):
+. Build and run the app locally
++
+----
+./mvnw clean package
+java -jar target/actors-0.0.1-SNAPSHOT.jar
+----
+
+. You can add actor records:
 +
 ----
 curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Dolph Lundgren\",  \"age\" : 59 }" http://localhost:8080/actors
 ----
 
-. Test locally
+. Test
 +
 ----
-curl http://localhost:8080 | python -m json.tool
+curl http://localhost:8080/actors | python -m json.tool
 ----
 
-. Add config properties for running on k8s
+. Add config properties for running on Kubernetes
 +
 We'll use standalone MySQL database that we'll configure later
 +
