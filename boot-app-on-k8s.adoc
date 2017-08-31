@@ -156,15 +156,17 @@ kubectl delete all -l run=hello
 
 === Demo 2 - Simple REST Repository App
 
-* Small CRUD JPA Repository
+. Create a small CRUD JPA Repository app
++
+----
+curl https://start.spring.io/starter.zip -d dependencies=web,actuator,jpa,data-rest,mysql,hsql \
+     -d groupId=com.springdeveloper.k8s -d artifactId=actors \
+     -d name=actors -d baseDir=actors -o actors.zip
+unzip actors.zip
+----
 
-	curl https://start.spring.io/starter.zip -d dependencies=web,actuator,jpa,data-rest,mysql,hsql \
-	     -d groupId=com.springdeveloper.k8s -d artifactId=actors \
-	     -d name=actors -d baseDir=actors -o actors.zip
-	unzip actors.zip
-
-* Add an Actor Entity
-
+. Add an Actor Entity
++
 .Actor
 [source,java]
 ----
@@ -207,8 +209,8 @@ public class Actor {
 }
 ----
 
-* Add an ActorRepository
-
+. Add an ActorRepository
++
 .ActorRepository
 [source,java]
 ----
@@ -226,6 +228,8 @@ public interface ActorRepository extends PagingAndSortingRepository<Actor, Long>
 }
 ----
 
+. Create default properties file for running app locally
++
 .application-default.properties
 [source,props]
 ----
@@ -236,14 +240,22 @@ spring.jpa.hibernate.ddl-auto=create
 spring.datasource.initialize=true
 ----
 
-* Add actor records (already added in database init):
+. You can add actor records (some are already added in database init):
++
+----
+curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Dolph Lundgren\",  \"age\" : 59 }" http://localhost:8080/actors
+----
 
-	curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Dolph Lundgren\",  \"age\" : 59 }" http://localhost:8080/actors
+. Test locally
++
+----
+curl http://localhost:8080 | python -m json.tool
+----
 
-* Test locally - http://localhost:8080
-
-* Add config porperties for k8s
-
+. Add config properties for running on k8s
++
+We'll use standalone MySQL database that we'll configure later
++
 .application-kubernetes.properties
 [source,props]
 ----
@@ -252,10 +264,8 @@ spring.jpa.hibernate.ddl-auto=update
 spring.datasource.initialize=false
 ----
 
-We'll use standalone MySQL database that we'll configure later
-
-* Add Docker Maven plug-in
-
+. Add Docker Maven plug-in
++
 .src/main/docker/assembly.xml
 [source,xml]
 ----
@@ -276,7 +286,7 @@ We'll use standalone MySQL database that we'll configure later
     </dependencySets>
 </assembly>
 ----
-
++
 .pom.xml
 [source,xml]
 ----
@@ -312,20 +322,20 @@ We'll use standalone MySQL database that we'll configure later
 ...
 ----
 
-* Add Spring Cloud Kubernetes Starter (originally Fabric8, now spring-cloud-incubator project)
-
+. Add Spring Cloud Kubernetes Starter (originally Fabric8, now spring-cloud-incubator project)
++
 .pom.xml
 [source,xml]
 ----
 ...
 		<dependency>
 			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-kubernetes</artifactId>
+			<artifactId>spring-cloud-starter-kubernetes-config</artifactId>
 			<version>0.2.0.RELEASE</version>
 		</dependency>
 ...
 ----
-
++
 .config/actors-deployment.yaml
 [source,yaml]
 ----
@@ -343,7 +353,7 @@ We'll use standalone MySQL database that we'll configure later
           value: actors
 ...
 ----
-
++
 .config/actors-config.yaml
 [source,yaml]
 ----
@@ -367,9 +377,9 @@ data:
         testOnBorrow: true
         validationQuery: "SELECT 1"
 ----
-
-* Configure a MySQL deployment and service
-
++
+. Configure a MySQL deployment and service
++
 .mysql/mysql-deployment.yaml
 [source,yaml]
 ----
@@ -404,7 +414,7 @@ spec:
         persistentVolumeClaim:
           claimName: mysql
 ----
-
++
 .mysql/mysql-svc.yaml
 [source,yaml]
 ----
@@ -420,7 +430,7 @@ spec:
   selector:
     app: mysql
 ----
-
++
 .mysql/mysql-pvc.yaml
 [source,yaml]
 ----
@@ -439,7 +449,7 @@ spec:
     requests:
       storage: 8Gi
 ----
-
++
 .mysql/mysql-secrets.yaml
 [source,yaml]
 ----
@@ -453,28 +463,28 @@ data:
   mysql-root-password: eW91cnBhc3N3b3Jk
 ----
 
-* Create a MySQL deployment and service
-
+. Create a MySQL deployment and service
++
 ----
 kubectl apply -f ./mysql/
 ----
 
-* Build app and push Docker image
-
+. Build app and push Docker image
++
 ----
 ./mvnw clean package docker:build
 docker tag actors $USER/actors:0.0.2
 docker push $USER/actors:0.0.2
 ----
 
-* Deploy app to k8s
-
+. Deploy app to k8s
++
 ----
 kubectl apply -f config/
 ----
 
-* Get status
-
+. Get status
++
 ----
 $ kubectl get all
 NAME                         READY     STATUS    RESTARTS   AGE
@@ -495,9 +505,11 @@ rs/actors-2063423708   1         1         1         2h
 rs/mysql-777890292     1         1         1         13h
 ----
 
-* Add some actor records (empty table in database initially):
-
-	./data/add-actors.sh
+. Add some actor records (empty table in database initially):
++
+----
+./data/add-actors.sh
+----
 
 == Connecting to Google Cloud Platform services
 
