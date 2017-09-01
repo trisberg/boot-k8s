@@ -48,10 +48,10 @@ unzip hello.zip
 cd hello
 ----
 
-. Add a `@RestController` and a mapping for `/hello`:
+. Add a `@RestController` and a mapping for `/hello` (the bold parts are the additions):
 +
 .HelloApplication.java
-[subs=+quotes]
+[source,subs=+quotes]
 ----
 package com.springdeveloper.k8s.hello;
 
@@ -155,6 +155,8 @@ kubectl delete all -l run=hello
 * Use `org.springframework.cloud:spring-cloud-starter-kubernetes` for ConfigMaps and Secrets
 
 === Demo 2 - Simple REST Repository App
+
+==== Create the app and the config for local testing
 
 . Create a small CRUD JPA Repository app
 +
@@ -261,6 +263,8 @@ curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Dolph Lun
 curl http://localhost:8080/actors | python -m json.tool
 ----
 
+==== Add Kubernetes configuration
+
 . Add config properties for running on Kubernetes
 +
 We'll use standalone MySQL database that we'll configure later
@@ -273,7 +277,7 @@ spring.jpa.hibernate.ddl-auto=update
 spring.datasource.initialize=false
 ----
 
-. Add Docker Maven plug-in
+. Add `assembly.xml` and Docker Maven plug-in to the `pom.xml`
 +
 .src/main/docker/assembly.xml
 [source,xml]
@@ -299,6 +303,9 @@ spring.datasource.initialize=false
 .pom.xml
 [source,xml]
 ----
+...
+	<build>
+		<plugins>
 ...
 			<plugin>
 				<groupId>io.fabric8</groupId>
@@ -328,6 +335,8 @@ spring.datasource.initialize=false
 					</images>
 				</configuration>
 			</plugin>
+		</plugins>
+	</build>
 ...
 ----
 
@@ -344,11 +353,70 @@ spring.datasource.initialize=false
 		</dependency>
 ...
 ----
+
+. Create the Kubernetes configuration files for the app
++
+.config/actors-svc.yaml
+[source,yaml]
+----
+kind: Service
+apiVersion: v1
+metadata:
+  name: actors
+  labels:
+    app: actors
+spec:
+  # If you are running k8s on a local dev box or using minikube, you can use type NodePort instead of LoadBalancer
+  type: NodePort
+  ports:
+    - port: 80
+  selector:
+    app: actors
+----
 +
 .config/actors-deployment.yaml
 [source,yaml]
 ----
-...
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: actors
+  labels:
+    app: actors
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: actors
+    spec:
+      containers:
+      - name: actors
+        image: trisberg/actors:0.0.1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 1.0
+            memory: 1024Mi
+          requests:
+            cpu: 0.5
+            memory: 640Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 90
+          periodSeconds: 15
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 45
+          periodSeconds: 15
+          timeoutSeconds: 5
         env:
         - name: SERVER_PORT
           value: '80'
@@ -360,7 +428,8 @@ spring.datasource.initialize=false
           value: mysql
         - name: SPRING_CLOUD_KUBERNETES_CONFIG_NAME
           value: actors
-...
+        - name: SPRING_CLOUD_CONFIG_ENABLED
+          value: 'false'
 ----
 +
 .config/actors-config.yaml
@@ -482,8 +551,8 @@ kubectl apply -f ./mysql/
 +
 ----
 ./mvnw clean package docker:build
-docker tag actors $USER/actors:0.0.2
-docker push $USER/actors:0.0.2
+docker tag actors $USER/actors:0.0.1
+docker push $USER/actors:0.0.1
 ----
 
 . Deploy app to k8s
@@ -532,31 +601,42 @@ rs/mysql-777890292     1         1         1         13h
 
 === Demo 3 - Simple REST Repository App using Cloud SQL for MySQL
 
-* Create a service account
+We will use the app from Demo 2, we'll just use different configuration files.
 
-	Role: Cloud SQL Client
-	
-Download the JSON private key file
+. Create a MySQL database -- see: https://cloud.google.com/sql/docs/mysql/create-manage-databases
 
-* Create the user account for the proxy
+. Create a service account -- see: https://cloud.google.com/iam/docs/creating-managing-service-accounts
 
-	gcloud sql users create proxyuser cloudsqlproxy~% --instance=spring-mysql
-	gcloud sql users set-password proxyuser cloudsqlproxy~% \ 
-	    --instance=spring-mysql --password=<your-password>
+- Create an account with "Role: Cloud SQL Client"
 
-* Get your instance connection name
+- Download the JSON private key file
 
-	gcloud sql instances describe spring-mysql
-	...
-	connectionName: <project>:us-central1:spring-mysql
-	...
+. Create the user account for the proxy
++
+----
+gcloud sql users create proxyuser cloudsqlproxy~% --instance=spring-mysql
+gcloud sql users set-password proxyuser cloudsqlproxy~% \ 
+    --instance=spring-mysql --password=<your-password>
+----
 
-* Create your secrets
-	kubectl create secret generic cloudsql-instance-credentials --from-file=credentials.json=<private-key-file-path>
-	kubectl create secret generic cloudsql-db-credentials --from-literal=username=proxyuser --from-literal=password=<your-password>
+. Get your instance connection name
++
+----
+gcloud sql instances describe spring-mysql
+...
+connectionName: <project>:us-central1:spring-mysql
+...
+----
 
-* Update your ConfigMap/Deployment configuration files
+. Create your secrets
++
+----
+kubectl create secret generic cloudsql-instance-credentials --from-file=credentials.json=<private-key-file-path>
+kubectl create secret generic cloudsql-db-credentials --from-literal=username=proxyuser --from-literal=password=<your-password>
+----
 
+. Create your ConfigMap/Deployment configuration files
++
 .config/actors-deployment.yaml
 [source,yaml]
 ----
@@ -588,7 +668,7 @@ spec:
           - name: cloudsql
             mountPath: /cloudsql
       - name: actors
-        image: trisberg/actors:0.0.2
+        image: trisberg/actors:v0.1.0
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
@@ -642,7 +722,7 @@ spec:
         - name: cloudsql
           emptyDir:
 ----
-
++
 .config/actors-config.yaml
 [source,yaml]
 ----
@@ -666,7 +746,6 @@ data:
         testOnBorrow: true
         validationQuery: "SELECT 1"
 ----
-
 
 == Service Discovery - Eureka
 
@@ -699,7 +778,7 @@ apiVersion: v1
 description: A Helm chart for Kubernetes
 name: actors
 version: 0.1.0
-appVersion: 0.0.2
+appVersion: 0.0.1
 home: https://github.com/trisberg/boot-k8s
 sources:
 - https://github.com/trisberg/boot-k8s
@@ -718,7 +797,7 @@ maintainers:
 replicaCount: 1
 image:
   repository: trisberg/actors
-  tag: 0.0.2
+  tag: 0.0.1
   pullPolicy: IfNotPresent
 service:
   name: actors
@@ -878,7 +957,7 @@ helm init
 helm install --name test local/actors
 ----
 
-Delete the chart installation:
+Delete and purge the chart installation:
 
 ----
 helm delete test --purge
