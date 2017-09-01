@@ -541,6 +541,8 @@ data:
   mysql-root-password: eW91cnBhc3N3b3Jk
 ----
 
+==== Deploy database and app to Kubernetes and test
+
 . Create a MySQL deployment and service
 +
 ----
@@ -584,6 +586,21 @@ rs/mysql-777890292     1         1         1         13h
 ----
 
 . Add some actor records (empty table in database initially):
++
+We need a shell script to look up the IP address of the server and then POST some data to it
++
+./data/add-actors.sh
+[source,bash]
+----
+ACTORS_URL="$(minikube service actors --url)"
+echo "POSTing data to $ACTORS_URL"
+curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Jack Nicholson\",  \"age\" : 80 }" $ACTORS_URL/actors
+curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Al Pacino\",  \"age\" : 77 }" $ACTORS_URL/actors
+curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Meryl Streep\",  \"age\" : 68 }" $ACTORS_URL/actors
+curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Jennifer Lawrence\",  \"age\" : 26 }" $ACTORS_URL/actors
+curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Julia Roberts\",  \"age\" : 49 }" $ACTORS_URL/actors
+curl -i -X POST -H "Content-Type:application/json" -d "{  \"name\" : \"Bradley Cooper\",  \"age\" : 42 }" $ACTORS_URL/actors
+----
 +
 ----
 ./data/add-actors.sh
