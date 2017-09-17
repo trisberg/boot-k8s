@@ -1,0 +1,148 @@
+:ext-relative: {outfilesuffix}
+== Demo - Simple REST Repository App using Cloud SQL for MySQL
+
+We will use the app from the Demo of _Simple REST Repository App_ link:demo-actors{ext-relative}[], we'll just use different configuration files.
+
+. Create a MySQL database -- see: https://cloud.google.com/sql/docs/mysql/create-manage-databases
+
+. Create a service account -- see: https://cloud.google.com/iam/docs/creating-managing-service-accounts
+
+- Create an account with "Role: Cloud SQL Client"
+
+- Download the JSON private key file
+
+. Create the user account for the proxy
++
+----
+gcloud sql users create proxyuser cloudsqlproxy~% --instance=spring-mysql
+gcloud sql users set-password proxyuser cloudsqlproxy~% \ 
+    --instance=spring-mysql --password=<your-password>
+----
+
+. Get your instance connection name
++
+----
+gcloud sql instances describe spring-mysql
+...
+connectionName: <project>:us-central1:spring-mysql
+...
+----
+
+. Create your secrets
++
+----
+kubectl create secret generic cloudsql-instance-credentials --from-file=credentials.json=<private-key-file-path>
+kubectl create secret generic cloudsql-db-credentials --from-literal=username=proxyuser --from-literal=password=<your-password>
+----
+
+. Create your ConfigMap/Deployment configuration files
++
+.config/actors-deployment.yaml
+[source,yaml]
+----
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: actors
+  labels:
+    app: actors
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: actors
+    spec:
+      containers:
+      - image: gcr.io/cloudsql-docker/gce-proxy:1.09
+        name: cloudsql-proxy
+        command: ["/cloud_sql_proxy", "--dir=/cloudsql",
+                  "-instances=<project>:us-central1:spring-mysql=tcp:3306",
+                  "-credential_file=/secrets/cloudsql/credentials.json"]
+        volumeMounts:
+          - name: cloudsql-instance-credentials
+            mountPath: /secrets/cloudsql
+            readOnly: true
+          - name: ssl-certs
+            mountPath: /etc/ssl/certs
+          - name: cloudsql
+            mountPath: /cloudsql
+      - name: actors
+        image: trisberg/actors:v0.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: 1.0
+            memory: 1024Mi
+          requests:
+            cpu: 0.5
+            memory: 640Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 90
+          periodSeconds: 15
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 45
+          periodSeconds: 15
+          timeoutSeconds: 5
+        env:
+        - name: SERVER_PORT
+          value: '80'
+        - name: SPRING_PROFILES_ACTIVE
+          value: kubernetes
+        - name: SPRING_CLOUD_KUBERNETES_CONFIG_NAME
+          value: actors
+        - name: SPRING_CLOUD_CONFIG_ENABLED
+          value: 'false'
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: cloudsql-db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cloudsql-db-credentials
+              key: password
+      volumes:
+        - name: cloudsql-instance-credentials
+          secret:
+            secretName: cloudsql-instance-credentials
+        - name: ssl-certs
+          hostPath:
+            path: /etc/ssl/certs
+        - name: cloudsql
+          emptyDir:
+----
++
+.config/actors-config.yaml
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: actors
+  labels:
+    app: actors
+data:
+  application.yaml: |-
+    security:
+      basic:
+        enabled: false
+    spring:
+      datasource:
+        url: jdbc:mysql://127.0.0.1:3306/test
+        username: ${DB_USER}
+        password: ${DB_PASSWORD}
+        driverClassName: com.mysql.jdbc.Driver
+        testOnBorrow: true
+        validationQuery: "SELECT 1"
+----

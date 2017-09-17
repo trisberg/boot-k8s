@@ -1,0 +1,209 @@
+== Demo - Helm chart for app
+
+Create a Helm chart for the `actors` app
+
+----
+cd charts/
+helm create actors
+----
+
+.actors/requirements.yaml
+[source,yaml]
+----
+dependencies:
+- name:  mysql
+  version: 0.2.8
+  repository: https://kubernetes-charts.storage.googleapis.com/
+----
+
+.actors/Chart.yaml
+[source,yaml]
+----
+apiVersion: v1
+description: A Helm chart for Kubernetes
+name: actors
+version: 0.1.0
+appVersion: 0.0.1
+home: https://github.com/trisberg/boot-k8s
+sources:
+- https://github.com/trisberg/boot-k8s
+icon: https://raw.githubusercontent.com/trisberg/boot-k8s/master/spring-boot-project-logo.png
+maintainers:
+- name: Thomas Risberg
+  email: trisberg@pivotal.io
+----
+
+.actors/values.yaml
+[source,yaml]
+----
+# Default values for actors.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+replicaCount: 1
+image:
+  repository: trisberg/actors
+  tag: 0.0.1
+  pullPolicy: IfNotPresent
+service:
+  name: actors
+  # Use NodePort without load balancer and LoadBalancer for env that have one
+  type: NodePort
+  externalPort: 80
+  internalPort: 8080
+ingress:
+  enabled: false
+  # Used to create Ingress record (should used with service.type: ClusterIP).
+  hosts:
+    - chart-example.local
+  annotations:
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  tls:
+    # Secrets must be manually created in the namespace.
+    # - secretName: chart-example-tls
+    #   hosts:
+    #     - chart-example.local
+resources:
+  limits:
+    cpu: 500m
+    memory: 1024Mi
+  requests:
+    cpu: 200m
+    memory: 512Mi
+----
+
+.actors/templates/service.yaml
+[source,yaml]
+----
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.externalPort }}
+      targetPort: {{ .Values.service.internalPort }}
+      protocol: TCP
+      name: {{ .Values.service.name }}
+  selector:
+    app: {{ template "name" . }}
+    release: {{ .Release.Name }}
+----
+
+.actors/templates/config.yaml
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  application.yaml: |-
+    security:
+      basic:
+        enabled: false
+    spring:
+      datasource:
+        url: jdbc:mysql://{{ .Release.Name }}-mysql:3306/mysql
+        username: root
+        password: ${mysql-root-password}
+        driverClassName: com.mysql.jdbc.Driver
+        testOnBorrow: true
+        validationQuery: "SELECT 1"
+----
+
+.actors/templates/deployment.yaml
+[source,yaml]
+----
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.internalPort }}
+          resources:
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.cpu }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.internalPort }}
+            initialDelaySeconds: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.service.internalPort }}
+            initialDelaySeconds: 60
+          env:
+          - name: SPRING_PROFILES_ACTIVE
+            value: kubernetes
+          - name: SPRING_CLOUD_KUBERNETES_SECRETS_ENABLE_API
+            value: 'true'
+          - name: SPRING_CLOUD_KUBERNETES_SECRETS_NAME
+            value: {{ .Release.Name }}-mysql
+          - name: SPRING_CLOUD_KUBERNETES_CONFIG_NAME
+            value: {{ template "fullname" . }}
+          - name: SPRING_CLOUD_CONFIG_ENABLED
+            value: 'false'
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+----
+
+Next, lint, package and serve up the chart:
+
+----
+helm lint actors
+helm dep update actors
+helm package actors
+helm repo index .
+helm serve
+----
+
+Now, install the chart:
+
+----
+helm init
+helm install --name test local/actors
+----
+
+Delete and purge the chart installation:
+
+----
+helm delete test --purge
+----
