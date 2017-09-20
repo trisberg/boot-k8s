@@ -1,0 +1,119 @@
+== Demo - Simple REST Repository App
+
+===== Create the app and the config for local testing
+
+. Create a small CRUD JPA Repository app
++
+----
+curl https://start.spring.io/starter.zip -d bootVersion=1.5.6.RELEASE \
+    -d dependencies=web,actuator,jpa,data-rest,mysql,hsql \
+    -d groupId=com.springdeveloper.k8s -d artifactId=images \
+    -d name=images -d baseDir=images -o images.zip
+unzip images.zip
+cd images
+----
+
+. Add an Image Entity
++
+.Image.java
+[source,java]
+----
+package com.springdeveloper.k8s.images;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+
+@Entity
+public class Image {
+
+	@Id
+	@GeneratedValue
+	Long id;
+
+	String url;
+
+	String name;
+
+	int size;
+
+	public Long getId() {
+		return id;
+	}
+
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public int getSize() {
+		return size;
+	}
+
+	public void setSize(int size) {
+		this.size = size;
+	}
+}
+----
+
+. Add an ImageRepository
++
+.ImageRepository.java
+[source,java]
+----
+package com.springdeveloper.k8s.images;
+
+import java.util.List;
+
+import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.repository.query.Param;
+
+public interface ImageRepository extends PagingAndSortingRepository<Image, Long> {
+
+	List<Image> findByName(@Param("name") String name);
+
+}
+----
+
+. Create default properties file for running app locally
++
+.application-default.properties
+[source,props]
+----
+endpoints.env.sensitive=false
+spring.datasource.url=jdbc:hsqldb:file:target/testdb
+spring.datasource.username=sa
+spring.jpa.hibernate.ddl-auto=create
+spring.datasource.initialize=true
+----
+
+. Build and run the app locally
++
+----
+./mvnw clean package
+java -jar target/actors-0.0.1-SNAPSHOT.jar
+----
+
+. You can add actor records:
++
+----
+curl -i -X POST -H "Content-Type:application/json" -d "{  \"url\" : \"https://www.evolutionary.org/wp-content/uploads/2014/04/Dolph-Lundgren-boxer-197x300.jpg\", \"name\" : \"Dolph Lundgren\",  \"size\" : 13923 }" http://localhost:8080/images
+----
+
+. Test
++
+----
+curl http://localhost:8080/images | python -m json.tool
+----
+

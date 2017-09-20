@@ -19,6 +19,14 @@ Then, start Minikube:
 Use `kubectl` to check the versions:
 +
 	kubectl version
++
+. To get a Minikube that has more room for growth use:
++
+	minikube start --cpus=4 --memory=4096
++
+. To share the Minikube's Docker environment use:
++
+	 eval $(minikube docker-env)
 
 == Introducing kubectl, Deployments, Services
 
@@ -77,6 +85,10 @@ include::demo-actors.adoc[]
 === Routing / Load Balancing - Zuul
 
 === Service Mesh - Istio
+
+== Log aggregation
+
+== Metrics - Zipkin / Sleuth
 
 == Packaging - Helm
 

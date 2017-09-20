@@ -1,0 +1,16 @@
+== Demo - Simple API Gateway App
+
+===== Create the app and the config for local testing
+
+. Create a small API Gateway app
++
+----
+curl https://start.spring.io/starter.zip -d bootVersion=1.5.6.RELEASE \
+    -d dependencies=web,actuator \
+    -d groupId=com.springdeveloper.k8s -d artifactId=gateway \
+    -d name=gateway -d baseDir=gateway -o gateway.zip
+unzip gateway.zip
+cd gateway
+----
+
+

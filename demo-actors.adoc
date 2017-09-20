@@ -15,7 +15,7 @@ cd actors
 
 . Add an Actor Entity
 +
-.Actor
+.Actor.java
 [source,java]
 ----
 package com.springdeveloper.k8s.actors;
@@ -59,7 +59,7 @@ public class Actor {
 
 . Add an ActorRepository
 +
-.ActorRepository
+.ActorRepository.java
 [source,java]
 ----
 package com.springdeveloper.k8s.actors;
