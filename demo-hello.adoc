@@ -50,10 +50,10 @@ endpoints.env.sensitive=false
 +
 .Dockerfile
 ----
-FROM java:8
+FROM java:8-alpine
 VOLUME /tmp
 ADD ./target/hello-*.jar /hello.jar
-RUN bash -c 'touch /hello.jar'
+RUN sh -c 'touch /hello.jar'
 ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/hello.jar"]
 ----
 
@@ -78,7 +78,9 @@ curl http://localhost:8080/hello
 ----
 docker push $USER/hello
 ----
-
++
+NOTE: You can share the Docker environment with Minikube by issuing an `eval $(minikube docker-env)` command. That way when you build the Docker image it will be available to Minikube and you don't have to push it to DockerHub.
++
 . Run a Kubernetes deployment on the running Minikube cluster
 +
 ----
