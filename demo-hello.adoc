@@ -107,7 +107,8 @@ kubectl get svc/hello -o yaml
 ProTip from Joe Beda at Heptio: https://blog.heptio.com/using-kubectl-to-jumpstart-a-yaml-file-heptioprotip-6f5b8a63a3ea
 +
 ----
-kubectl run hello --image $USER/hello:0.0.1 --port 8080 -o yaml --dry-run > hello-deployment.yaml
+kubectl run hello --image $USER/hello:0.0.1 --port 8080 -o yaml --dry-run \ 
+    > hello-deployment.yaml
 kubectl expose deployment hello --type=NodePort -o yaml --dry-run > hello-svc.yaml
 ----
 
