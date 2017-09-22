@@ -1,4 +1,4 @@
-== Demo - Simple Hello Spring Boot/Kubernetes app deployment
+== Demo - Simple Hello Spring Boot/Kubernetes app deployment on Minikube
 
 . Create a simple Boot app
 +
@@ -52,39 +52,38 @@ endpoints.env.sensitive=false
 ----
 FROM java:8-alpine
 VOLUME /tmp
-ADD ./target/hello-*.jar /hello.jar
+ADD ./target/hello-0.0.1-SNAPSHOT.jar /hello.jar
 RUN sh -c 'touch /hello.jar'
 ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/hello.jar"]
 ----
 
-. Build the app and the Docker image 
-+
-(we are assuming that you have a DockerHub account matching your username here, if that is not the case adjust accordingly)
+. Start a Minikube instance
 +
 ----
+minikube 
+----
+
+. Build the app and the Docker image 
++
+NOTE: We are sharing the Docker environment used by Minikube
++
+----
+eval $(minikube docker-env)
 ./mvnw clean package
-docker build -t $USER/hello .
+docker build -t $USER/hello:0.0.1 .
 ----
 
 . Test Docker container locally
 +
 ----
-docker run -p 8080:8080 $USER/hello
+docker run -p 8080:8080 $USER/hello:0.0.1
 curl http://localhost:8080/hello
 ----
 
-. Push Docker container to a new registry for your DockerHub account
-+
-----
-docker push $USER/hello
-----
-+
-NOTE: You can share the Docker environment with Minikube by issuing an `eval $(minikube docker-env)` command. That way when you build the Docker image it will be available to Minikube and you don't have to push it to DockerHub.
-+
 . Run a Kubernetes deployment on the running Minikube cluster
 +
 ----
-kubectl run hello --image trisberg/hello --port=8080
+kubectl run hello --image $USER/hello:0.0.1 --port 8080
 kubectl expose deployment hello --type=NodePort
 minikube service hello --url
 ----
@@ -101,6 +100,15 @@ curl $(minikube service hello --url)/hello
 curl $(minikube service hello --url)/env | python -m json.tool
 kubectl get deploy/hello -o yaml
 kubectl get svc/hello -o yaml
+----
+
+. Create a Deployment and Service YAML file for future repeatable deployments
++
+ProTip from Joe Beda at Heptio: https://blog.heptio.com/using-kubectl-to-jumpstart-a-yaml-file-heptioprotip-6f5b8a63a3ea
++
+----
+kubectl run hello --image $USER/hello:0.0.1 --port 8080 -o yaml --dry-run > hello-deployment.yaml
+kubectl expose deployment hello --type=NodePort -o yaml --dry-run > hello-svc.yaml
 ----
 
 . Delete the resources created for `hello`
