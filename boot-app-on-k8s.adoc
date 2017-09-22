@@ -90,7 +90,19 @@ See: http://cloud.spring.io/spring-cloud-static/Dalston.SR3/#_circuit_breaker_hy
 
 == Log aggregation
 
-== Metrics - Zipkin / Sleuth
+== Metrics - Prometheus
+
+==== For Spring Boot 1.5.x
+
+https://moelholm.com/2017/02/06/spring-boot-prometheus-actuator-endpoint/
+
+==== For Spring Boot 2.0
+
+Lots of changes, new metrics using Micrometer
+
+Still in development, stay tuned ...
+
+== Distributed Tracing - Zipkin / Sleuth
 
 == Packaging - Helm
 
