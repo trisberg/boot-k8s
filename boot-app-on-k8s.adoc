@@ -90,6 +90,16 @@ See: http://cloud.spring.io/spring-cloud-static/Dalston.SR3/#_circuit_breaker_hy
 
 == Log aggregation
 
+https://crondev.com/elk-stack-kubernetes/
+
+https://github.com/pires/kubernetes-elk-cluster
+
+http://knes1.github.io/blog/2015/2015-08-16-manage-spring-boot-logs-with-elasticsearch-kibana-and-logstash.html
+https://github.com/vaquarkhan/SpringBoot-ELKStack/blob/master/logstash.conf
+
+https://jaxenter.com/docker-logging-gotchas-137049.html
+
+
 == Metrics - Prometheus
 
 ==== For Spring Boot 1.5.x

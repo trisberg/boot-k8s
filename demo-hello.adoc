@@ -1,5 +1,17 @@
 == Demo - Simple Hello Spring Boot/Kubernetes app deployment on Minikube
 
+==== Start Minikube 
+
+- Install Minikube from https://kubernetes.io/docs/tasks/tools/install-minikube/
+
+- Install `kubectl` from https://kubernetes.io/docs/tasks/tools/install-kubectl/
+
+Then, start Minikube:
+
+	minikube start
+
+==== Create and run a simple Spring Boot app
+
 . Create a simple Boot app
 +
 ----
@@ -57,12 +69,6 @@ RUN sh -c 'touch /hello.jar'
 ENTRYPOINT ["java","-Djava.security.egd=file:/dev/./urandom","-jar","/hello.jar"]
 ----
 
-. Start a Minikube instance
-+
-----
-minikube 
-----
-
 . Build the app and the Docker image 
 +
 NOTE: We are sharing the Docker environment used by Minikube
@@ -73,19 +79,11 @@ eval $(minikube docker-env)
 docker build -t $USER/hello:0.0.1 .
 ----
 
-. Test Docker container locally
-+
-----
-docker run -p 8080:8080 $USER/hello:0.0.1
-curl http://localhost:8080/hello
-----
-
 . Run a Kubernetes deployment on the running Minikube cluster
 +
 ----
 kubectl run hello --image $USER/hello:0.0.1 --port 8080
 kubectl expose deployment hello --type=NodePort
-minikube service hello --url
 ----
 
 . Test the app
