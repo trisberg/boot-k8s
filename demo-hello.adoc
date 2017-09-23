@@ -100,7 +100,7 @@ kubectl get deploy/hello -o yaml
 kubectl get svc/hello -o yaml
 ----
 
-. Create a Deployment and Service YAML file for future repeatable deployments
+. Create Deployment and Service YAML files for future repeatable deployments
 +
 ProTip from Joe Beda at Heptio: https://blog.heptio.com/using-kubectl-to-jumpstart-a-yaml-file-heptioprotip-6f5b8a63a3ea
 +
