@@ -25,7 +25,7 @@ cd hello
 
 . Add a `@RestController` and a mapping for `/hello` (the bold parts are the additions):
 +
-.HelloApplication.java
+.src/main/java/com/springdeveloper/k8s/demo/HelloApplication.java
 [source,subs=+quotes]
 ----
 package com.springdeveloper.k8s.hello;
@@ -53,7 +53,7 @@ public class HelloApplication {
 
 . Add a property disabling security for the `env` endpoint so we can inspect environment variables added by Kubernetes 
 +
-.application.properties
+.src/main/resources/application.properties
 ----
 endpoints.env.sensitive=false
 ----
