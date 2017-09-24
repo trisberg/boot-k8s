@@ -86,21 +86,7 @@ See: https://github.com/spring-cloud-incubator/spring-cloud-kubernetes#discovery
 
 See: http://cloud.spring.io/spring-cloud-static/Dalston.SR3/#_circuit_breaker_hystrix_clients
 
-=== Service Mesh - Istio
-
-== Log aggregation
-
-https://crondev.com/elk-stack-kubernetes/
-
-https://github.com/pires/kubernetes-elk-cluster
-
-http://knes1.github.io/blog/2015/2015-08-16-manage-spring-boot-logs-with-elasticsearch-kibana-and-logstash.html
-https://github.com/vaquarkhan/SpringBoot-ELKStack/blob/master/logstash.conf
-
-https://jaxenter.com/docker-logging-gotchas-137049.html
-
-
-== Metrics - Prometheus
+=== Metrics - Prometheus
 
 ==== For Spring Boot 1.5.x
 
@@ -112,7 +98,20 @@ Lots of changes, new metrics using Micrometer
 
 Still in development, stay tuned ...
 
-== Distributed Tracing - Zipkin / Sleuth
+=== Distributed Tracing - Zipkin / Sleuth
+
+=== Log aggregation
+
+https://crondev.com/elk-stack-kubernetes/
+
+https://github.com/pires/kubernetes-elk-cluster
+
+http://knes1.github.io/blog/2015/2015-08-16-manage-spring-boot-logs-with-elasticsearch-kibana-and-logstash.html
+https://github.com/vaquarkhan/SpringBoot-ELKStack/blob/master/logstash.conf
+
+https://jaxenter.com/docker-logging-gotchas-137049.html
+
+== Service Mesh - Istio
 
 == Packaging - Helm
 
