@@ -102,6 +102,8 @@ Still in development, stay tuned ...
 
 === Log aggregation
 
+https://logz.io/blog/kubernetes-log-analysis/
+
 https://crondev.com/elk-stack-kubernetes/
 
 https://github.com/pires/kubernetes-elk-cluster
